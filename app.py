@@ -1,4 +1,8 @@
 import uuid
+
+from jsonschema import validate
+import api_helpers
+import schemas
 from flask import Flask, request
 from flask_restx import Api, Resource, fields, Namespace
 
@@ -30,9 +34,11 @@ order_update_model = api.model('OrderUpdate', {
 # Namespaces
 pet_ns = Namespace('pets', description='Pets operations')
 store_ns = Namespace('store', description='Store operations')
+petsValidation_ns = Namespace('Validation', description='Pets Validation operations')
 
 api.add_namespace(pet_ns)
 api.add_namespace(store_ns)
+api.add_namespace(petsValidation_ns)
 
 # In-memory data storage
 pets = [
@@ -102,6 +108,24 @@ class PetFindByStatus(Resource):
         if status:
             filtered_pets = [pet for pet in pets if pet['status'] == status]
             return filtered_pets
+     
+     
+# Store Namespace
+@petsValidation_ns.route('/validate')
+#Now I want to take the pets as in put and validate against the model pets in schemas.py
+class PetValidationResource(Resource):
+    @petsValidation_ns.doc('validate_pet')
+    @petsValidation_ns.expect(pet_model)
+    def post(self):
+        """Validate a pet against the pet model"""
+        payload = api.payload
+        # Validate the payload against the schema defined in schemas.py
+        try:
+            validate(instance=payload, schema=schemas.pet)
+            # Additional validation logic can be added here if needed
+            return {"message": "Validation successful"}, 200
+        except Exception as e:
+            return {"message": f"Validation failed: {str(e)}"}, 400
         
 # Store Namespace
 @store_ns.route('/order')
@@ -168,3 +192,5 @@ class OrderUpdateResource(Resource):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
